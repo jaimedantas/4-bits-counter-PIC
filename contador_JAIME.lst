@@ -1,0 +1,341 @@
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;-----------------------------------------------------------------------------------;
+                      00002 ;       Contador de 4 bits usando 4 leds no porto B com intervado de 0.5s na contagem   ;
+                      00003 ;       Autor: Jaime Cristalino Jales Dantas - UFRN - Engenharia de Computacao                  ;
+                      00004 ;       Disciplina: Arquitetura de Computadores                                                         
+                                                    ;
+                      00005 ;       Data: 9 dezembro de 2015                                                                        
+                                                                    ;       
+                      00006 ;       Descricao do programa: Esse programa faz a contagem de 1 ate 9 usando 4 leds    ;
+                      00007 ;                                                       no porto B com intervado de 0.5s na contagem.   
+                                            ;       
+                      00008 ;       CLOCK: 1 kHz                                                                                    
+                                                                            ;       
+                      00009 ;       MCU: PIC16F84A                                                                                  
+                                                                            ;
+                      00010 ;       Copilado usando o MATLAB v8.92                                                                  
+                                                            ;
+                      00011 ;-----------------------------------------------------------------------------------;
+                      00012 
+                      00013  list p = pic16f84a                                                     ; microcontrolador ultilizado PI
+                            C16F84A
+                      00014 
+                      00015 ; --- Arquivos incluidos no projeto ---
+                      00016  #include <p16f84a.inc>                                         ; inclui o aquivo do PIC16F84A
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ;  MPASM PIC16F84A processor include
+                      00005 ; 
+                      00006 ;  (c) Copyright 1999-2013 Microchip Technology, All rights reserved
+                      00007 ;==========================================================================
+                      00008 
+                      00208         LIST
+                      00017 
+Warning[207]: Found label after column 1. (TMR0)
+  00000001            00018                         TMR0            EQU     1                       ; timer 
+Warning[207]: Found label after column 1. (STATUS)
+  00000003            00019                         STATUS          EQU     3                       ; registrador de status 
+Warning[207]: Found label after column 1. (PORTA)
+  00000005            00020                         PORTA           EQU     5                       ; Porto A
+Warning[207]: Found label after column 1. (PORTB)
+  00000006            00021                         PORTB           EQU             6                       ; Porto B
+Warning[207]: Found label after column 1. (TRISA)
+  00000085            00022                         TRISA           EQU             85H             ; registrador de entrada A
+Warning[207]: Found label after column 1. (TRISB)
+  00000086            00023                         TRISB           EQU             86H                     ; registrador de saida B
+Warning[207]: Found label after column 1. (OPTION_R)
+  00000081            00024                         OPTION_R        EQU     81H             ; usado na divisao do clock pelo contado
+                            r
+Warning[207]: Found label after column 1. (ZEROBIT)
+  00000002            00025                         ZEROBIT         EQU     2 
+Warning[207]: Found label after column 1. (COUNT)
+  0000000C            00026                         COUNT           EQU     0CH             ; contador
+                      00027  
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00028 ; -- FUSE Bits --
+                      00029 ; Ultilizaremos um cristal externo de 1 kHz, sem watchdog timer, com power up timer, sem protecao do cod
+                            igo
+2007   3FF1           00030  __config _XT_OSC & _WDT_OFF & _PWRTE_ON & _CP_OFF
+                      00031 
+                      00032 ; --- Paginacao de Memoria ---
+                      00033  #define        bank0           bcf STATUS, RP0         ; cria um mnemocino para o banco 0 de memoria
+                      00034  #define        bank1           bsf STATUS, RP0         ; cria um mnemocino para o banco 1 de memoria
+                      00035  #define        ligaLED1        bsf PORTB,0                     ; liga porta B0
+                      00036  #define        desligaLED1     bcf     PORTB,0                 ; desliga porta B0
+                      00037  #define        ligaLED2        bsf PORTB,1                     ; liga porta B1
+                      00038  #define        desligaLED2     bcf     PORTB,1                 ; desliga porta B1
+                      00039  #define        ligaLED3        bsf PORTB,2                     ; liga porta B2
+                      00040  #define        desligaLED3     bcf     PORTB,2                 ; desliga porta B2
+                      00041  #define        ligaLED4        bsf PORTB,3                     ; liga porta B3
+                      00042  #define        desligaLED4     bcf     PORTB,3                 ; desliga porta B3
+                      00043  
+                      00044 ; --- Vetor de RESET ---
+0000                  00045                         org                     H'0000'                         ;Origem no endereço 0000
+                            h de memória
+0000   2805           00046                         goto            inicio                          ;Desvia do vetor de interrupção 
+                      00047  
+                      00048 ; --- Vetor de Interrupcao ---                          ; as interrupcoes estao desabilitadas
+0004                  00049                         org                     H'0004'                         ; todas as interrupções 
+                            apontam para este endereço
+0004   0009           00050                         retfie                                                  ; retorna de interrupcao
+                      00051  
+                      00052 ;--- Programa Principal ---
+0005                  00053 inicio:
+0005   1683           00054                         bank1                                                   ;seleciona o banco 1 de 
+                            memoria
+0006   3000           00055                         movlw           H'00'                           ;W = 0000 0000
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0007   0085           00056                 movwf           TRISA                           ;TRISA = H'00' (todos os bits sao entrad
+                            a)
+                      00057     
+0008   3000           00058                         movlw           H'00'                           ;W = 0000 0000
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0009   0086           00059                 movwf           TRISB                           ;TRISB = H'00' (todos os bits sao saida)
+                      00060     
+000A   3006           00061                 movlw           H'06'                           ;W = 0000 0110
+                      00062                 ;-Calculo do timer-
+                      00063                 ;se setarmos OPTION_R -> 128 ficaremos com 1024/4 = 256 e sabemos que 256/128 = 2, ou se
+                            ja, quando o timer
+                      00064                         ;tiver valor igual a 1 se terá se passado 0.5 segundo
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000B   0081           00065                 movwf           OPTION_R        
+000C   1283           00066                 bank0   
+000D   0185           00067                 clrf            PORTA                           ; reseta as portas do porto A
+000E   0186           00068                 clrf            PORTB                           ; reseta as portas do porto B
+000F   2810           00069                 goto            programa                        ; vai para a execucao do loop do program
+                            a
+                      00070                 
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00071                 
+                      00072 ;--- Laco que sera executado infinitamente em nosso programa ---
+0010                  00073 programa:
+Warning[207]: Found label after column 1. (LOOPA)
+0010                  00074                                 LOOPA
+                      00075                                 ;--Numero 0 - binario -> 0000
+0010   0186           00076                                 clrf    PORTB                           ;reseta as portas B
+0011   202C           00077                                 call    delay05                         ;delay de 0.5s 
+                      00078                         ;--Numero 1 - binario -> 0001
+0012   1406           00079                         ligaLED1                                        ;liga o led 1
+0013   202C           00080                         call    delay05                         ;delay de 0.5s
+                      00081                         ;--Numero 2 -  binario -> 0010
+0014   1006           00082                         desligaLED1                                     ;desliga o led 1
+0015   1486           00083                         ligaLED2                                        ;liga o led 2
+0016   202C           00084                         call    delay05                         ;delay de 0.5s
+                      00085                         ;--Numero 3 -  binario -> 0011
+0017   1406           00086                         ligaLED1                                        ;liga o led 2
+0018   202C           00087                         call    delay05                         ;delay de 0.5s
+                      00088                                 ;--Numero 4 -  binario -> 0100
+0019   1006           00089                         desligaLED1                                     ;desliga o led 1
+001A   1086           00090                         desligaLED2                                     ;desliga o led 2
+001B   1506           00091                         ligaLED3                                        ;liga o led 3
+001C   202C           00092                         call    delay05                         ;delay de 0.5s
+                      00093                         ;--Numero 5 -  binario -> 0101
+001D   1406           00094                         ligaLED1                                        ;liga o led 1
+001E   202C           00095                         call    delay05                         ;delay de 0.5s
+                      00096                         ;--Numero 6 -  binario -> 0110
+001F   1006           00097                         desligaLED1                                     ;desliga o led 1
+0020   1486           00098                         ligaLED2                                        ;liga o led 2
+0021   202C           00099                         call    delay05                         ;delay de 0.5s
+                      00100                         ;--Numero 7 -  binario -> 0111
+0022   1406           00101                         ligaLED1                                        ;liga o led 1
+0023   202C           00102                         call    delay05                         ;delay de 0.5s
+                      00103                         ;--Numero 8 -  binario -> 1000
+0024   1006           00104                                 desligaLED1                                     ;desliga o led 1
+0025   1086           00105                         desligaLED2                                     ;desliga o led 2
+0026   1106           00106                                 desligaLED3                                     ;desliga o led 3
+0027   1586           00107                         ligaLED4                                        ;liga o led 4
+0028   202C           00108                         call    delay05                         ;delay de 0.5s
+                      00109                         ;--Numero 9 -  binario -> 1001
+0029   1406           00110                         ligaLED1                                        ;liga o led 1
+002A   202C           00111                         call    delay05                         ;delay de 0.5s
+002B   2810           00112                                 goto    LOOPA                           ;volta para o loop inicial
+                      00113 
+                      00114    
+                      00115 ; --- Esse eh a funcao de delay 0.5 calculada           
+002C                  00116 delay05: 
+002C   0181           00117                         clrf    TMR0                            ; reseta o timer
+Warning[207]: Found label after column 1. (LOOPB)
+002D   0801           00118                         LOOPB   movf    TMR0,W          ; move o valor contido no timer para o registrad
+                            or de trabalho W
+002E   3C01           00119                                 sublw   .1                      ; timer - 1
+002F   1D03           00120                                 btfss   STATUS,ZEROBIT  ; verifica se  timer - 1 eh zero
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0030   282D           00121                                 goto    LOOPB                   ; volta pra o loop
+0031   3400           00122                                 retlw   0                       ; retorma para programa
+                      00123     
+Warning[205]: Found directive in column 1. (end)
+                      00124 end                                                                                     ;fim do programa
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  5
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+C                                 00000000
+COUNT                             0000000C
+DC                                00000001
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+F                                 00000001
+FSR                               00000004
+GIE                               00000007
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IRP                               00000007
+LOOPA                             00000010
+LOOPB                             0000002D
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+OPTION_R                          00000081
+OPTION_REG                        00000081
+PCL                               00000002
+PCLATH                            0000000A
+PORTA                             00000005
+PORTB                             00000006
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+RA0                               00000000
+RA1                               00000001
+RA2                               00000002
+RA3                               00000003
+RA4                               00000004
+RB0                               00000000
+RB1                               00000001
+RB2                               00000002
+RB3                               00000003
+RB4                               00000004
+RB5                               00000005
+RB6                               00000006
+RB7                               00000007
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+STATUS                            00000003
+T0CS                              00000005
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  6
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+TMR0                              00000001
+TMR0IE                            00000005
+TMR0IF                            00000002
+TRISA                             00000085
+TRISA0                            00000000
+TRISA1                            00000001
+TRISA2                            00000002
+TRISA3                            00000003
+TRISA4                            00000004
+TRISB                             00000086
+TRISB0                            00000000
+TRISB1                            00000001
+TRISB2                            00000002
+TRISB3                            00000003
+TRISB4                            00000004
+TRISB5                            00000005
+TRISB6                            00000006
+TRISB7                            00000007
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Z                                 00000002
+ZEROBIT                           00000002
+_CONFIG                           00002007
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_DEVID1                           00002006
+_FOSC_EXTRC                       00003FFF
+_FOSC_HS                          00003FFE
+_FOSC_LP                          00003FFC
+_FOSC_XT                          00003FFD
+_HS_OSC                           00003FFE
+_IDLOC0                           00002000
+_IDLOC1                           00002001
+_IDLOC2                           00002002
+_IDLOC3                           00002003
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDTE_OFF                         00003FFB
+_WDTE_ON                          00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84A                          00000001
+__DEBUG                           1
+bank0                             bcf STATUS, RP0
+bank1                             bsf STATUS, RP0
+MPASM  5.51                CONTADOR_JAIME.ASM   12-11-2015  19:46:29         PAGE  7
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+delay05                           0000002C
+desligaLED1                       bcf     PORTB,0
+desligaLED2                       bcf     PORTB,1
+desligaLED3                       bcf     PORTB,2
+desligaLED4                       bcf     PORTB,3
+inicio                            00000005
+ligaLED1                          bsf PORTB,0
+ligaLED2                          bsf PORTB,1
+ligaLED3                          bsf PORTB,2
+ligaLED4                          bsf PORTB,3
+programa                          00000010
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XX--------------
+2000 : -------X-------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:    47
+Program Memory Words Free:   977
+
+
+Errors   :     0
+Warnings :    12 reported,     0 suppressed
+Messages :     3 reported,     0 suppressed
+
+
